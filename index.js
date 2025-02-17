@@ -21,7 +21,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "welcome.html"));
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.get(
