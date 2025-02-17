@@ -1,39 +1,59 @@
+require("dotenv").config();
+
 const express = require("express");
 const axios = require("axios");
+const cors = require("cors");
+const path = require("path");
+
 const app = express();
 
+// Load environment variables
+const PORT = process.env.PORT || 5000;
+const PART_SERVICE_KEY = process.env.X_PART_SERVICE_KEY;
+
+if (!PART_SERVICE_KEY) {
+  console.error("❌ Missing API Key (X_PART_SERVICE_KEY) in .env file!");
+  process.exit(1);
+}
+
+app.use(cors());
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 app.get(
-  "/api/proxy/:region/:autotype/:year?/:make?/:model?/:submodel?",
+  "/api/proxy/:region?/:autotype?/:year?/:make?/:model?/:submodel?",
   async (req, res) => {
     try {
-      // Extract parameters from the request
       const { region, autotype, year, make, model, submodel } = req.params;
 
-      // Construct the API URL dynamically
-      let apiUrl = `https://api.xpel.com/partsearch/search/${region}/${autotype}`;
+      const baseUrl = "https://api.xpel.com/partsearch/search";
+      const params = [region, autotype, year, make, model, submodel].filter(
+        Boolean
+      );
+      const apiUrl = `${baseUrl}/${params.join("/")}`;
+      console.log(`📡 Fetching API: ${apiUrl}`);
 
-      // Append optional parameters in correct order if they exist
-      if (year) apiUrl += `/${year}`;
-      if (make) apiUrl += `/${make}`;
-      if (model) apiUrl += `/${model}`;
-      if (submodel) apiUrl += `/${submodel}`;
-
-      // Make API request
       const response = await axios.get(apiUrl, {
         headers: {
-          "X-PartServiceKey": "Driven02032025",
-          "Content-Type": "application/json",
+          "X-PartServiceKey": PART_SERVICE_KEY,
+          Accept: "application/json",
         },
       });
 
       res.json(response.data);
     } catch (error) {
+      console.error("❌ API Request Failed:", error.message);
       res.status(500).json({
-        error: "Failed to fetch data",
-        details: error.message,
+        error: "Failed to fetch data from API.",
+        details: error.response?.data || error.message,
       });
     }
   }
 );
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+// Start the server
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
