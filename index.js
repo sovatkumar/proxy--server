@@ -21,7 +21,7 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "welcome.html"));
 });
 
 app.get(
@@ -42,9 +42,11 @@ app.get(
           "X-PartServiceKey": PART_SERVICE_KEY,
           Accept: "application/json",
         },
+        responseType: "text",
       });
-
-      res.json(response.data);
+      console.log(typeof response.data);
+      res.setHeader("Content-Type", "application/xml");
+      res.send(response.data);
     } catch (error) {
       console.error("❌ API Request Failed:", error.message);
       res.status(500).json({

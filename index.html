@@ -3,63 +3,223 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Welcome to My Website</title>
+    <title>API Dropdown Selector</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
+        text-align: center;
+        margin: 20px;
+      }
+
+      select,
+      button {
+        padding: 10px;
+        margin: 10px;
+        font-size: 16px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
         text-align: center;
       }
 
-      .container {
-        max-width: 600px;
-        padding: 20px;
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 12px;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-      }
-
-      h1 {
-        font-size: 36px;
-        margin-bottom: 10px;
-      }
-
-      p {
-        font-size: 18px;
-        margin-bottom: 20px;
-      }
-
-      .btn {
-        display: inline-block;
-        padding: 12px 24px;
-        font-size: 18px;
+      th {
+        background-color: #0074cd;
         color: white;
-        text-decoration: none;
-        background: #ff5722;
-        border-radius: 8px;
-        transition: background 0.3s ease-in-out;
-      }
-
-      .btn:hover {
-        background: #e64a19;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h1>Welcome to My Proxy Server!</h1>
-      <p>
-        We're glad you're here. This is a simple Proxy Server welcome page to
-        get you started.
-      </p>
-      <a href="/" class="btn">Get Started</a>
-    </div>
+    <h1>Select Your Vehicle</h1>
+
+    <!-- Dropdowns -->
+    <select id="regionSelect" onchange="fetchYears()">
+      <option value="">Select Region</option>
+    </select>
+
+    <select id="yearSelect" class="hidden" onchange="fetchMakes()">
+      <option value="">Select Year</option>
+    </select>
+
+    <select id="makeSelect" class="hidden" onchange="fetchModels()">
+      <option value="">Select Make</option>
+    </select>
+
+    <select id="modelSelect" class="hidden" onchange="fetchSubmodels()">
+      <option value="">Select Model</option>
+    </select>
+
+    <select id="submodelSelect" class="hidden" onchange="fetchResults()">
+      <option value="">Select Submodel</option>
+    </select>
+
+    <!-- Results Table -->
+    <table id="resultsTable" class="hidden">
+      <thead>
+        <tr>
+          <th>Make</th>
+          <th>Model</th>
+          <th>Submodel</th>
+          <th>Part Description</th>
+          <th>Part Number</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+
+    <script>
+      const API_BASE = "http://localhost:4000/api/proxy";
+
+      // Fetch and populate the Region dropdown
+      async function fetchRegions() {
+        try {
+          const response = await fetch(`${API_BASE}/1`);
+          const text = await response.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const levels = xml.getElementsByTagName("level");
+
+          const regionSelect = document.getElementById("regionSelect");
+          regionSelect.innerHTML = `<option value="">Select Region</option>`;
+
+          for (let level of levels) {
+            const id = level.getAttribute("id");
+            const name = level.getAttribute("name");
+            regionSelect.innerHTML += `<option value="${id}">${name}</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching regions:", error);
+        }
+      }
+
+      // Fetch and populate the Year dropdown
+      async function fetchYears() {
+        const region = document.getElementById("regionSelect").value;
+        if (!region) return;
+
+        try {
+          const response = await fetch(`${API_BASE}/1/${region}`);
+          const text = await response.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const level = xml.getElementsByTagName("level")[0];
+
+          const startYear = parseInt(level.getAttribute("syear"));
+          const endYear = parseInt(level.getAttribute("eyear"));
+
+          const yearSelect = document.getElementById("yearSelect");
+          yearSelect.innerHTML = `<option value="">Select Year</option>`;
+
+          for (let year = endYear; year >= startYear; year--) {
+            yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+          }
+
+          yearSelect.classList.remove("hidden");
+        } catch (error) {
+          console.error("Error fetching years:", error);
+        }
+      }
+
+      // Fetch and populate the Make dropdown
+      async function fetchMakes() {
+        const region = document.getElementById("regionSelect").value;
+        const year = document.getElementById("yearSelect").value;
+        if (!year) return;
+
+        try {
+          const response = await fetch(`${API_BASE}/1/${region}/${year}`);
+          const text = await response.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const levels = xml.getElementsByTagName("level");
+
+          const makeSelect = document.getElementById("makeSelect");
+          makeSelect.innerHTML = `<option value="">Select Make</option>`;
+
+          for (let level of levels) {
+            const id = level.getAttribute("id");
+            const name = level.getAttribute("name");
+            makeSelect.innerHTML += `<option value="${id}">${name}</option>`;
+          }
+
+          makeSelect.classList.remove("hidden");
+        } catch (error) {
+          console.error("Error fetching makes:", error);
+        }
+      }
+
+      // Fetch and populate the Model dropdown
+      async function fetchModels() {
+        const region = document.getElementById("regionSelect").value;
+        const year = document.getElementById("yearSelect").value;
+        const make = document.getElementById("makeSelect").value;
+        if (!make) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/1/${region}/${year}/${make}`
+          );
+          const text = await response.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const levels = xml.getElementsByTagName("level");
+
+          const modelSelect = document.getElementById("modelSelect");
+          modelSelect.innerHTML = `<option value="">Select Model</option>`;
+
+          for (let level of levels) {
+            const id = level.getAttribute("id");
+            const name = level.getAttribute("name");
+            modelSelect.innerHTML += `<option value="${id}">${name}</option>`;
+          }
+
+          modelSelect.classList.remove("hidden");
+        } catch (error) {
+          console.error("Error fetching models:", error);
+        }
+      }
+
+      // Fetch and populate the Submodel dropdown
+      async function fetchSubmodels() {
+        const region = document.getElementById("regionSelect").value;
+        const year = document.getElementById("yearSelect").value;
+        const make = document.getElementById("makeSelect").value;
+        const model = document.getElementById("modelSelect").value;
+        if (!model) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/1/${region}/${year}/${make}/${model}`
+          );
+          const text = await response.text();
+          const xml = new DOMParser().parseFromString(text, "text/xml");
+          const levels = xml.getElementsByTagName("level");
+
+          const submodelSelect = document.getElementById("submodelSelect");
+          submodelSelect.innerHTML = `<option value="">Select Submodel</option>`;
+
+          for (let level of levels) {
+            const id = level.getAttribute("id");
+            const name = level.getAttribute("name");
+            submodelSelect.innerHTML += `<option value="${id}">${name}</option>`;
+          }
+
+          submodelSelect.classList.remove("hidden");
+        } catch (error) {
+          console.error("Error fetching submodels:", error);
+        }
+      }
+
+      // Load regions on page load
+      fetchRegions();
+    </script>
   </body>
 </html>
